@@ -5,10 +5,6 @@
  */
 package com.tibbo.linkserver.plugin.device.file;
 
-/**
- *
- * @author Rura
- */
 import com.tibbo.aggregate.common.Log;
 import com.tibbo.aggregate.common.context.*;
 import com.tibbo.aggregate.common.datatable.*;
@@ -29,11 +25,12 @@ import java.sql.Timestamp;
 import java.util.*;
 
 /**
- *
- * @author Rura
+ * Драйвер для Aggregate интерфейса DubBus.
+ * Собственно интерфейс постороен на основе ModBus но с учетом того что каждое устройство имеет дублера
+ * с таким же набором переменных.
+ * Кроме этого весь обмен с утройством производится массивом
+ * @author Русинов Юрий <ruraomsk@list.ru>
  */
-// Referenced classes of package com.tibbo.linkserver.plugin.device.modbus:
-//            ModbusRegister, Lres, ModbusDeviceController
 public class FileDeviceDriver extends AbstractDeviceDriver
 {
 
@@ -734,7 +731,6 @@ public class FileDeviceDriver extends AbstractDeviceDriver
         }
         return null;
     }
-
     @Override
     public void finishSynchronization() throws DeviceException, DisconnectionException
     {
