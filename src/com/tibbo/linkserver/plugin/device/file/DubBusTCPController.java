@@ -9,7 +9,6 @@ package com.tibbo.linkserver.plugin.device.file;
  *
  * @author Rura
  */
-import com.tibbo.aggregate.common.Log;
 import com.tibbo.aggregate.common.datatable.*;
 import com.tibbo.linkserver.plugin.device.file.item.*;
 import java.util.*;
