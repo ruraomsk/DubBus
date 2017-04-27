@@ -16,33 +16,26 @@ import com.tibbo.aggregate.common.util.AggreGateThread;
 import com.tibbo.aggregate.common.util.ThreadManager;
 
 import com.tibbo.linkserver.plugin.device.file.item.DataType;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
 import java.sql.Timestamp;
 import java.util.*;
+import ruraomsk.list.ru.strongsql.*;
 
 /**
- * Драйвер для Aggregate интерфейса DubBus.
- * Собственно интерфейс постороен на основе ModBus но с учетом того что каждое устройство имеет дублера
- * с таким же набором переменных.
- * Кроме этого весь обмен с утройством производится массивом
+ * Драйвер для Aggregate интерфейса DubBus. Собственно интерфейс постороен на
+ * основе ModBus но с учетом того что каждое устройство имеет дублера с таким же
+ * набором переменных. Кроме этого весь обмен с утройством производится массивом
+ *
  * @author Русинов Юрий <ruraomsk@list.ru>
  */
-public class FileDeviceDriver extends AbstractDeviceDriver
-{
+public class FileDeviceDriver extends AbstractDeviceDriver {
 
-    public FileDeviceDriver()
-    {
+    public FileDeviceDriver() {
         super("dubbus", VFT_CONNECTION_PROPERTIES);
     }
 
     @Override
     public void setupDeviceContext(DeviceContext deviceContext)
-            throws ContextException
-    {
+            throws ContextException {
         super.setupDeviceContext(deviceContext);
         deviceContext.setDefaultSynchronizationPeriod(10000L);
         VariableDefinition vd = new VariableDefinition("connectionProperties", VFT_CONNECTION_PROPERTIES, true, true, "connectionProperties", ContextUtils.GROUP_ACCESS);
@@ -53,11 +46,6 @@ public class FileDeviceDriver extends AbstractDeviceDriver
         vd = new VariableDefinition("registers", VFT_REGISTERS, true, true, "Регистры", ContextUtils.GROUP_ACCESS);
         vd.setWritePermissions(ServerPermissionChecker.getAdminPermissions());
         deviceContext.addVariableDefinition(vd);
-        /*
-        vd = new VariableDefinition("perfect", VFT_PERFECT, true, true, "Эталон", ContextUtils.GROUP_ACCESS);
-        vd.setWritePermissions(ServerPermissionChecker.getAdminPermissions());
-        deviceContext.addVariableDefinition(vd);
-         */
         vd = new VariableDefinition("devices", VFT_DEVICES, true, true, "Устройства", ContextUtils.GROUP_ACCESS);
         vd.setWritePermissions(ServerPermissionChecker.getAdminPermissions());
         deviceContext.addVariableDefinition(vd);
@@ -70,28 +58,20 @@ public class FileDeviceDriver extends AbstractDeviceDriver
     }
 
     @Override
-    public List<VariableDefinition> readVariableDefinitions(DeviceEntities entities) throws ContextException, DeviceException, DisconnectionException
-    {
-
+    public List<VariableDefinition> readVariableDefinitions(DeviceEntities entities) throws ContextException, DeviceException, DisconnectionException {
         ensureRegisters();
-
         return createDeviceVariableDefinitions(registers);
     }
 
     @Override
-    public void accessSettingUpdated(String name)
-    {
+    public void accessSettingUpdated(String name) {
         registers = null;
-        try
-        {
-            if (name.equals("registers"))
-            {
+        try {
+            if (name.equals("registers")) {
                 makeParam();
                 ensureRegisters();
             }
-        }
-        catch (ContextException ex)
-        {
+        } catch (ContextException ex) {
             Log.CORE.info("Not accessSettingUpdated " + name);;
         }
         super.accessSettingUpdated(name); //To change body of generated methods, choose Tools | Templates.
@@ -106,10 +86,8 @@ public class FileDeviceDriver extends AbstractDeviceDriver
     public static final String VF_SIZE = "size";
     public static final String VF_DEVICE = "deviceId";
 
-    private void makeParam()
-    {
-        try
-        {
+    private void makeParam() {
+        try {
             DeviceContext deviceContext = getDeviceContext();
             DataTable perfs = deviceContext.getVariable("registers", getDeviceContext().getCallerController());
             int lenCoils = 0;
@@ -117,49 +95,40 @@ public class FileDeviceDriver extends AbstractDeviceDriver
             int lenHR = 0;
             int lenIR = 0;
             int type, format, address, size;
-            for (DataRecord recperf : perfs)
-            {
+            for (DataRecord recperf : perfs) {
                 type = recperf.getInt(VF_REGISTERS_TYPE);
                 format = recperf.getInt(VF_REGISTERS_FORMAT);
                 address = recperf.getInt(VF_ADDRESS);
                 size = recperf.getInt(VF_SIZE);
 
-                if (format >= 4 && format <= 9)
-                {
+                if (format >= 4 && format <= 9) {
                     size *= 2;
                 }
-                if (format >= 11 && format <= 15)
-                {
+                if (format >= 11 && format <= 15) {
                     size *= 4;
                 }
-                if (format == 17)
-                {
+                if (format == 17) {
                     size *= 2;
                 }
                 int right = address + size;
-                switch (type)
-                {
+                switch (type) {
                     case 0:
-                        if (right > lenCoils)
-                        {
+                        if (right > lenCoils) {
                             lenCoils = right;
                         }
                         break;
                     case 1:
-                        if (right > lenDI)
-                        {
+                        if (right > lenDI) {
                             lenDI = right;
                         }
                         break;
                     case 2:
-                        if (right > lenIR)
-                        {
+                        if (right > lenIR) {
                             lenIR = right;
                         }
                         break;
                     case 3:
-                        if (right > lenHR)
-                        {
+                        if (right > lenHR) {
                             lenHR = right;
                         }
                         break;
@@ -170,17 +139,13 @@ public class FileDeviceDriver extends AbstractDeviceDriver
             getDeviceContext().setVariableField("connectionProperties", VF_LENDI, lenDI, getDeviceContext().getCallerController());
             getDeviceContext().setVariableField("connectionProperties", VF_LENIR, lenIR, getDeviceContext().getCallerController());
             getDeviceContext().setVariableField("connectionProperties", VF_LENHR, lenHR, getDeviceContext().getCallerController());
-        }
-        catch (ContextException ex)
-        {
+        } catch (ContextException ex) {
             Log.CORE.info("connectionProperties or registers not found" + ex.getMessage());
         }
     }
 
-    private boolean isWritable(int registerType)
-    {
-        switch (registerType)
-        {
+    private boolean isWritable(int registerType) {
+        switch (registerType) {
             case 1: // '\001'
                 return false;
 
@@ -197,12 +162,10 @@ public class FileDeviceDriver extends AbstractDeviceDriver
     }
 
     private List createDeviceVariableDefinitions(List registers)
-            throws ContextException
-    {
+            throws ContextException {
         List res = new LinkedList();
         VariableDefinition vd;
-        for (Iterator i$ = registers.iterator(); i$.hasNext(); res.add(vd))
-        {
+        for (Iterator i$ = registers.iterator(); i$.hasNext(); res.add(vd)) {
             ModbusRegister register = (ModbusRegister) i$.next();
             String name = register.getName();
             int registerType = register.getType();
@@ -225,21 +188,18 @@ public class FileDeviceDriver extends AbstractDeviceDriver
     public static final String VF_LENHR = "lenHR";
     public DubBus PARAM = new DubBus();
 
-    public final DubBusTCPController[] controller = new DubBusTCPController[2];
+    public DubBusTCPController[] controller = new DubBusTCPController[2];
     private int canal = 0;
 
     @Override
     public void connect()
-            throws DeviceException
-    {
+            throws DeviceException {
         makeParam();
+        yesSQL = false;
         DataRecord connProps = null;
-        try
-        {
+        try {
             connProps = getDeviceContext().getVariable("connectionProperties", getDeviceContext().getCallerController()).rec();
-        }
-        catch (ContextException ex)
-        {
+        } catch (ContextException ex) {
             Log.CORE.info("connectionProperties not found" + ex.getMessage());
         }
         PARAM.lenCoils = connProps.getInt(VF_LENCOILS);
@@ -247,36 +207,28 @@ public class FileDeviceDriver extends AbstractDeviceDriver
         PARAM.lenIR = connProps.getInt(VF_LENIR);
         PARAM.lenHR = connProps.getInt(VF_LENHR);
         PARAM.step = connProps.getInt(VF_STEP);
-        for (int i = 0; i < controller.length; i++)
-        {
+        for (int i = 0; i < controller.length; i++) {
             controller[i] = null;
         }
         canal = connProps.getInt(VF_CANAL);
         DataTable devs = null;
-        try
-        {
+        try {
             devs = super.getDeviceContext().getVariable("devices", getDeviceContext().getCallerController());
-        }
-        catch (ContextException ex)
-        {
+        } catch (ContextException ex) {
             Log.CORE.info("Devices not found");
         }
         Integer errorCount = 0;
         Integer device = 0;
-        for (DataRecord recdev : devs)
-        {
+        for (DataRecord recdev : devs) {
             String IPaddres = recdev.getString("IPaddr");
             int port = recdev.getInt("port");
             //Log.CORE.info("Device in " + device.toString()+" "+IPaddres);
 
-            try
-            {
+            try {
 
                 controller[device] = DubBusTCPController.tcpController(IPaddres, port, PARAM);
                 controller[device].connect();
-            }
-            catch (Exception ex)
-            {
+            } catch (Exception ex) {
                 Log.CORE.info("Device Error " + device.toString() + " " + ex.getMessage());
                 controller[device] = null;
                 errorCount++;
@@ -284,197 +236,171 @@ public class FileDeviceDriver extends AbstractDeviceDriver
             //Log.CORE.info("IPDevice out" + IPaddres);
             device++;
         }
-        if (canal == 0 && controller[0] == null)
-        {
+        if (canal == 0 && controller[0] == null) {
             canal = 1;
         }
-        if (canal == 1 && controller[1] == null)
-        {
+        if (canal == 1 && controller[1] == null) {
             canal = 0;
         }
-        try
-        {
+        try {
             getDeviceContext().setVariableField("connectionProperties", VF_CANAL, canal, getDeviceContext().getCallerController());
-        }
-        catch (ContextException ex)
-        {
+        } catch (ContextException ex) {
             throw new DeviceException("connectionProperties not wrote " + ex.getMessage());
         }
-        if (thRead == null)
-        {
+        if (thRead == null) {
             thRead = new DubReconect(this, thrManager);
         }
         super.connect();
-        if (errorCount == 2)
-        {
+        if (errorCount == 2) {
             throw new DeviceException("Not working chanel ");
         }
 
-        try
-        {
-            DataRecord sqlrec = getDeviceContext().getVariable("SQLProperties", getDeviceContext().getCallerController()).rec();
-            yesSQL = sqlrec.getBoolean("yesSQL");
-            if (!yesSQL)
-            {
-                return;
-            }
-            myDB = sqlrec.getString("table");
-            myDBH = myDB + "_head";
-            Class.forName(sqlrec.getString("JDBC"));
-            con = DriverManager.getConnection(sqlrec.getString("url"), sqlrec.getString("user"), sqlrec.getString("password"));
-            stmt = con.createStatement();
-            String rez = "SELECT * FROM " + myDBH + " WHERE id=1";
-            ResultSet rr = stmt.executeQuery(rez);
-            rr.next();
-            MaxLenght = rr.getLong("max");
-            TekPos = rr.getLong("pos");
-            LastPos = rr.getLong("last");
-        }
-        catch (ContextException ex)
-        {
-            throw new DeviceException("SQL Properties not found");
-        }
-        catch (ClassNotFoundException ex)
-        {
-            throw new DeviceException("JDBC not found");
-        }
-        catch (SQLException ex)
-        {
-            throw new DeviceException("SQL not connection");
-        }
+        try {
+            ParamSQL param = new ParamSQL();
+            DataRecord rec;
+            rec = getDeviceContext().getVariable("SQLProperties", getDeviceContext().getCallerController()).rec();
+            param.JDBCDriver = rec.getString("JDBCDriver");
+            param.url = rec.getString("url");
+            param.user = rec.getString("user");
+            param.password = rec.getString("password");
+            param.myDB = rec.getString("table");
+            boolean initSQL = rec.getBoolean("initSQL");
+            long longSQL = rec.getLong("longSQL");
+            long stepSQL = rec.getLong("stepSQL");
+            DataTable regData = getDeviceContext().getVariable("registers", getDeviceContext().getCallerController());
+            if (initSQL) {
+                Log.CORE.error("Создаем базу .....");
+                ArrayList<DescrValue> arraydesc = new ArrayList<>();
+                int count = 0;
+                for (DataRecord reg : regData) {
+                    String name = reg.getString("name");
+                    int type = 1;
+                    switch (reg.getInt("format")) {
+                        case 2:
+                        case 3:
+                            if (reg.getInt("type") < 2) {
+                                type = 0;
+                            } else {
+                                type = 1;
+                            }
+                            break;
+                        case 4:
+                        case 5:
+                            type = 1;
+                            break;
+                        case 8:
+                            type = 2;
+                            break;
+                        default:
+                            Log.CORE.error("Нет типа " + reg.getString("name"));
+                    }
+                    arraydesc.add(new DescrValue(name, count++, type));
+                }
+                new StrongSql(param, arraydesc, 0, longSQL, new Date().toString());
+                Log.CORE.error("Создали базу .....");
+                DataTable cp = getDeviceContext().getVariable("SQLProperties", getDeviceContext().getCallerController());
+                cp.rec().setValue("initSQL", false);
+                getDeviceContext().setVariable("SQLProperties", getDeviceContext().getCallerController(), cp);
 
+            }
+            sqldata = new StrongSql(param, stepSQL);
+            sqlseek = new StrongSql(param);
+            yesSQL = true;
+            Log.CORE.error("Connect .....");
+        } catch (ContextException ex) {
+            throw new DeviceException("SQL error!");
+        }
     }
-    private Connection con = null;
-    private Statement stmt = null;
-    private Long MaxLenght;
-    private Long TekPos;
-    private Long LastPos;
-    private String myDB;
-    private String myDBH;
+
+    private StrongSql sqldata = null;
+    private StrongSql sqlseek = null;
+
     private boolean yesSQL = false;
 
     private ThreadManager thrManager = new ThreadManager();
     private DubReconect thRead;
 
     @Override
-    public void startSynchronization() throws DeviceException
-    {
+    public void startSynchronization() throws DeviceException {
         boolean canal0 = false;
         boolean canal1 = false;
         DataRecord connProps = null;
-        try
-        {
+        try {
             connProps = getDeviceContext().getVariable("connectionProperties", getDeviceContext().getCallerController()).rec();
-        }
-        catch (ContextException ex)
-        {
+        } catch (ContextException ex) {
             Log.CORE.info("connectionProperties not found" + ex.getMessage());
         }
         canal = connProps.getInt(VF_CANAL);
         Integer errorCount = 0;
-        if (controller[0] != null)
-        {
-            try
-            {
-                if (controller[0].isconnected())
-                {
+        if (controller[0] != null) {
+            try {
+                if (controller[0].isconnected()) {
                     canal0 = true;
                 }
-            }
-            catch (Exception ex)
-            {
+            } catch (Exception ex) {
                 canal0 = false;
                 errorCount++;
             }
         }
-        if (controller[1] != null)
-        {
-            try
-            {
-                if (controller[1].isconnected())
-                {
+        if (controller[1] != null) {
+            try {
+                if (controller[1].isconnected()) {
                     canal1 = true;
                 }
-            }
-            catch (Exception ex)
-            {
+            } catch (Exception ex) {
                 canal1 = false;
                 errorCount++;
             }
         }
         int newcanal = canal;
-        if ((canal == 0) && !canal0 && canal1)
-        {
+        if ((canal == 0) && !canal0 && canal1) {
             newcanal = 1;
         }
-        if ((canal == 1) && !canal1 && canal0)
-        {
+        if ((canal == 1) && !canal1 && canal0) {
             newcanal = 0;
         }
 
-        if (newcanal != canal)
-        {
+        if (newcanal != canal) {
             canal = newcanal;
             writeNewCanal();
         }
-        if (errorCount == 2)
-        {
+        if (errorCount == 2) {
             super.setConnected(false);
         }
         super.startSynchronization(); //To change body of generated methods, choose Tools | Templates.
     }
 
-    private void writeNewCanal()
-    {
-        try
-        {
+    private void writeNewCanal() {
+        try {
             getDeviceContext().setVariableField("connectionProperties", VF_CANAL, canal, getDeviceContext().getCallerController());
-        }
-        catch (ContextException ex)
-        {
+        } catch (ContextException ex) {
             Log.CORE.info("connectionProperties not wrote " + ex.getMessage());
         }
 
     }
 
     @Override
-    public void disconnect() throws DeviceException
-    {
-        for (DubBusTCPController controller1 : controller)
-        {
-            if (controller1 != null)
-            {
-                try
-                {
+    public void disconnect() throws DeviceException {
+        for (DubBusTCPController controller1 : controller) {
+            if (controller1 != null) {
+                try {
                     controller1.disconnect();
-                }
-                catch (Exception ex)
-                {
+                } catch (Exception ex) {
                     throw new DeviceException(ex);
                 }
             }
         }
         thrManager.interruptThread(thRead);
         thRead = null;
-        if (yesSQL)
-        {
-
-            try
-            {
-                con.close();
-                stmt.close();
-            }
-            catch (SQLException ex)
-            {
-                throw new DeviceException(ex);
-            }
+        if (yesSQL) {
+            sqldata.disconnect();
+            sqlseek.disconnect();
         }
         super.disconnect();
     }
 
     @Override
-    public List<FunctionDefinition> readFunctionDefinitions(DeviceEntities entities) throws ContextException, DeviceException, DisconnectionException
-    {
+    public List<FunctionDefinition> readFunctionDefinitions(DeviceEntities entities) throws ContextException, DeviceException, DisconnectionException {
         List res = new LinkedList();
         FieldFormat iff = FieldFormat.create("NewCanal", FieldFormat.INTEGER_FIELD, "Новый номер канала");
         TableFormat inputFormat = new TableFormat(1, 1, iff);
@@ -497,48 +423,50 @@ public class FileDeviceDriver extends AbstractDeviceDriver
         outputFormat.addField(FieldFormat.create((new StringBuilder()).append("<Status><S><D=").append("Статус соединения").append(">").toString()));
         fd = new FunctionDefinition("Status", inputFormat, outputFormat, "Состояние подключения", ContextUtils.GROUP_DEFAULT);
         res.add(fd);
+
+        inputFormat = new TableFormat(1, 1);
+        inputFormat.addField(FieldFormat.create("<name><S><D=Имя переменной>"));
+        inputFormat.addField(FieldFormat.create("<from><D><D=Начало периода>"));
+        inputFormat.addField(FieldFormat.create("<to><D><D=Конец периода>"));
+        TableFormat history = new TableFormat(true);
+        history.addField(FieldFormat.create("<series><S><D=Имя серии>"));
+        history.addField(FieldFormat.create("<x><D><D=Время>"));
+        history.addField(FieldFormat.create("<y><F><D=Значение>"));
+        fd = new FunctionDefinition("history", inputFormat, history, "История переменной", ContextUtils.GROUP_DEFAULT);
+        res.add(fd);
+
         return res;
     }
 
     @Override
-    public DataTable executeFunction(FunctionDefinition fd, CallerController caller, DataTable parameters) throws ContextException, DeviceException, DisconnectionException
-    {
-        if (fd.getName().equals("ChangeCanal"))
-        {
+    public DataTable executeFunction(FunctionDefinition fd, CallerController caller, DataTable parameters) throws ContextException, DeviceException, DisconnectionException {
+        if (fd.getName().equals("ChangeCanal")) {
             int newCanal = parameters.rec().getInt("NewCanal");
-            if (newCanal == 0 || newCanal == 1)
-            {
+            if (newCanal == 0 || newCanal == 1) {
                 canal = newCanal;
-            } else
-            {
+            } else {
                 canal = (canal + 1) & 1;
             }
             writeNewCanal();
             return new DataTable(fd.getOutputFormat(), canal);
         }
-        if (fd.getName().equals("Status"))
-        {
+        if (fd.getName().equals("Status")) {
 
             boolean flag = parameters.rec().getBoolean("isConnect");
-            if (!flag)
-            {
+            if (!flag) {
                 return new DataTable(fd.getOutputFormat(), "Статус соедениния не запрашивался");
             }
             DataTable devs = null;
-            try
-            {
+            try {
                 devs = super.getDeviceContext().getVariable("devices", getDeviceContext().getCallerController());
-            }
-            catch (ContextException ex)
-            {
+            } catch (ContextException ex) {
                 Log.CORE.info("Devices not found");
             }
             DataTable res = new DataTable(fd.getOutputFormat());
 
             Integer error = 0;
             Integer device = 0;
-            for (DataRecord recdev : devs)
-            {
+            for (DataRecord recdev : devs) {
                 DataRecord resrec = new DataRecord(res.getFormat());
                 String IPaddres = recdev.getString("IPaddr");
                 int port = recdev.getInt("port");
@@ -546,14 +474,11 @@ public class FileDeviceDriver extends AbstractDeviceDriver
                 resrec.setValue("port", port);
                 //Log.CORE.info("Device in " + device.toString()+" "+IPaddres);
 
-                if ((controller[device] != null && controller[device].isconnected()))
-                {
+                if ((controller[device] != null && controller[device].isconnected())) {
                     resrec.setValue("Status", "Подключено и есть обмен");
-                } else if (controller[device] == null)
-                {
+                } else if (controller[device] == null) {
                     resrec.setValue("Status", "Отсутствовала связь на момент запуска");
-                } else
-                {
+                } else {
                     resrec.setValue("Status", "Во время обмена обнаружены ошибки связи");
                 }
                 res.addRecord(resrec);
@@ -561,52 +486,40 @@ public class FileDeviceDriver extends AbstractDeviceDriver
             }
             return res;
         }
-        if (fd.getName().equals("ReConnect"))
-        {
+        if (fd.getName().equals("ReConnect")) {
 
             boolean flag = parameters.rec().getBoolean("ReConnect");
-            if (!flag)
-            {
+            if (!flag) {
                 return new DataTable(fd.getOutputFormat(), "Переподлючение не производилось");
             }
             DataTable devs = null;
-            try
-            {
+            try {
                 devs = super.getDeviceContext().getVariable("devices", getDeviceContext().getCallerController());
-            }
-            catch (ContextException ex)
-            {
+            } catch (ContextException ex) {
                 Log.CORE.info("Devices not found");
             }
             Integer error = 0;
             Integer device = 0;
-            for (DataRecord recdev : devs)
-            {
+            for (DataRecord recdev : devs) {
                 String IPaddres = recdev.getString("IPaddr");
                 int port = recdev.getInt("port");
 
                 //Log.CORE.info("Device in " + device.toString()+" "+IPaddres);
-                try
-                {
-                    if ((controller[device] != null && controller[device].isconnected()))
-                    {
+                try {
+                    if ((controller[device] != null && controller[device].isconnected())) {
                         continue;
                     }
-                    if (controller[device] == null)
-                    {
+                    if (controller[device] == null) {
                         controller[device] = DubBusTCPController.tcpController(IPaddres, port, PARAM);
                         controller[device].connect();
                         continue;
                     }
-                    if (!controller[device].isconnected())
-                    {
+                    if (!controller[device].isconnected()) {
                         controller[device].disconnect();
                         controller[device].connect();
                     }
 
-                }
-                catch (Exception ex)
-                {
+                } catch (Exception ex) {
                     Log.CORE.info("Device Error " + device.toString() + " " + ex.getMessage());
                     controller[device] = null;
                     error++;
@@ -617,79 +530,95 @@ public class FileDeviceDriver extends AbstractDeviceDriver
             return new DataTable(fd.getOutputFormat(), "Переподлючение производилось. Ошибок " + error.toString());
         }
 
+        if (fd.getName().equalsIgnoreCase("history")) {
+            String svar = parameters.rec().getString("name");
+            Timestamp dfrom = new Timestamp(parameters.rec().getDate("from").getTime());
+            Timestamp dto = new Timestamp(parameters.rec().getDate("to").getTime());
+            DataTable regData = getDeviceContext().getVariable("registers", getDeviceContext().getCallerController());
+            DataTable result = new DataTable(fd.getOutputFormat());
+            Integer count = keyMap.get(svar);
+            if (count == null) {
+                return result;
+            }
+            ArrayList<SetValue> asv = sqlseek.seekData(dfrom, dto, count);
+            for (SetValue sv : asv) {
+                if (sv.getTime() == 0L) {
+                    continue;
+                }
+                DataRecord rec = result.addRecord();
+                rec.setValue("series", svar);
+                rec.setValue("x", new Timestamp(sv.getTime()));
+                rec.setValue("y", sv.getFloatValue());
+            }
+            return result;
+        }
+
         return super.executeFunction(fd, caller, parameters); //To change body of generated methods, choose Tools | Templates.
     }
 
     private void ensureRegisters()
-            throws ContextException
-    {
-        try
-        {
-            if (registers != null)
-            {
+            throws ContextException {
+        try {
+            if (registers != null) {
                 return;
             }
             DataTable regData = getDeviceContext().getVariable("registers", getDeviceContext().getCallerController());
             registers = DataTableConversion.beansFromTable(regData, Class.forName("com.tibbo.linkserver.plugin.device.file.ModbusRegister"), VFT_REGISTERS, true);
+            keyMap = new HashMap<>();
+            Integer count = 0;
+            for (DataRecord reg : regData) {
+                String name = reg.getString("name");
+                keyMap.put(name, count++);
+            }
+        } catch (ClassNotFoundException ex) {
+            Log.CORE.info("Not Class MultiModbusRegister!");
+        } catch (ContextException ex) {
+            Log.CORE.info("Ошибка в makeRegisters " + ex.getMessage());
         }
-        catch (ClassNotFoundException ex)
-        {
-            Log.CORE.info("Not Class ModbusRegister!");
-        }
+
     }
+    private HashMap<String, Integer> keyMap;
 
     @Override
     public DataTable readVariableValue(VariableDefinition vd, CallerController caller)
-            throws ContextException, DeviceException, DisconnectionException
-    {
+            throws ContextException, DeviceException, DisconnectionException {
         ModbusRegister reg = getRegister(vd.getName());
-        if (!iscanal())
-        {
+        if (!iscanal()) {
             DataTable res = new DataTable(vd.getFormat());
             res.addRecord(0);
             return res;
         }
-        try
-        {
+        try {
             return controller[canal].readValue(vd.getFormat(), reg);
-        }
-        catch (Exception ex)
-        {
+        } catch (Exception ex) {
 
             throw new DeviceException((new StringBuilder()).append("Failed to get current value of '").append(reg.getName()).append("' (").append(reg.getDescription()).append(") register: ").append(ex.getMessage()).toString(), ex);
         }
     }
 
-    private boolean iscanal()
-    {
+    private boolean iscanal() {
         int newcanal = canal == 1 ? 0 : 1;
         boolean b0, b1;
         b0 = isready(0);
         b1 = isready(1);
-        if ((canal == 0) && b0)
-        {
+        if ((canal == 0) && b0) {
             return true;
         }
-        if ((canal == 1) && b1)
-        {
+        if ((canal == 1) && b1) {
             return true;
         }
-        if (!b0 && !b0)
-        {
+        if (!b0 && !b0) {
             return false;
         }
         canal = b0 ? 0 : 1;
         return true;
     }
 
-    private boolean isready(int i)
-    {
-        if (controller[i] == null)
-        {
+    private boolean isready(int i) {
+        if (controller[i] == null) {
             return false;
         }
-        if (!controller[i].isconnected())
-        {
+        if (!controller[i].isconnected()) {
             return false;
         }
         return true;
@@ -697,100 +626,58 @@ public class FileDeviceDriver extends AbstractDeviceDriver
 
     @Override
     public void writeVariableValue(VariableDefinition vd, CallerController caller, DataTable value, DataTable deviceValue)
-            throws ContextException, DeviceException, DisconnectionException
-    {
+            throws ContextException, DeviceException, DisconnectionException {
         ModbusRegister reg = null;
-        try
-        {
-            for (int i = 0; i < 2; i++)
-            {
+        try {
+            for (int i = 0; i < 2; i++) {
                 reg = getRegister(vd.getName());
-                if ((controller[i] != null) && (controller[i].isconnected()))
-                {
+                if ((controller[i] != null) && (controller[i].isconnected())) {
                     controller[i].writeValue(reg.getUnitId(), value, reg);
                 }
             }
-        }
-        catch (Exception ex)
-        {
+        } catch (Exception ex) {
             throw new DeviceException((new StringBuilder()).append("Failed to set value of '").append(reg.getName()).append("' (").append(reg.getDescription()).append(") register: ").append(ex.getMessage()).toString(), ex);
         }
     }
 
     private ModbusRegister getRegister(String name)
-            throws ContextException
-    {
+            throws ContextException {
         ensureRegisters();
-        for (Iterator idx = registers.iterator(); idx.hasNext();)
-        {
+        for (Iterator idx = registers.iterator(); idx.hasNext();) {
             ModbusRegister register = (ModbusRegister) idx.next();
-            if (register.getName().equals(name))
-            {
+            if (register.getName().equals(name)) {
                 return register;
             }
         }
         return null;
     }
+
     @Override
-    public void finishSynchronization() throws DeviceException, DisconnectionException
-    {
-        if (!yesSQL)
-        {
+    public void finishSynchronization() throws DeviceException, DisconnectionException {
+        if (!yesSQL) {
             return;
         }
-        try
-        {
+        try {
+            ArrayList<SetValue> arrayValues = new ArrayList<>();
             DataTable tregs = getDeviceContext().getVariable("registers", getDeviceContext().getCallerController());
-            String rezult = "";
-            for (DataRecord recregs : tregs)
-            {
+            int count = 0;
+            for (DataRecord recregs : tregs) {
                 String vname = recregs.getString("name");
-                rezult += "<" + vname + "=";
                 DataTable tvar = getDeviceContext().getVariable(vname, getDeviceContext().getCallerController());
                 Object obj = tvar.getRecord(0).getValue(0);
-                if (obj.getClass().getName() == "java.lang.Boolean")
-                {
-                    rezult += ((Boolean) obj ? "1" : "0") + ">";
-                } else if (obj.getClass().getName() == "java.lang.Long")
-                {
-                    rezult += Long.toString((long) obj) + ">";
-                } else if (obj.getClass().getName() == "java.lang.Integer")
-                {
-                    rezult += Integer.toString((int) obj) + ">";
-                } else
-                {
-                    rezult += Float.toString((Float) obj) + ">";
-                }
+                arrayValues.add(new SetValue(count++, obj));
             }
-            Timestamp timestamp = new Timestamp(new Date().getTime());
-            String rez = null;
-            if (LastPos > MaxLenght)
-            {
-                rez = "UPDATE " + myDB + " SET tm='" + timestamp.toString() + "',var='" + rezult + "' WHERE id=" + TekPos.toString() + ";";
-                TekPos++;
-            } else
-            {
-                rez = "INSERT INTO " + myDB + "(id,tm,var) VALUES( " + TekPos.toString() + ",'" + timestamp.toString() + "','" + rezult + "')";
-                LastPos++;
-                TekPos++;
+            if (!arrayValues.isEmpty()) {
+                sqldata.addValues(new Timestamp(System.currentTimeMillis()), arrayValues);
             }
-            stmt.executeUpdate(rez);
-            if (TekPos > MaxLenght)
-            {
-                TekPos = 0L;
-            }
-            rez = "UPDATE " + myDBH + " SET pos=" + TekPos.toString() + ", last=" + LastPos.toString() + " WHERE id=1";
-            stmt.executeUpdate(rez);
-        }
-        catch (ContextException | SQLException ex)
-        {
+        } catch (ContextException ex) {
+            Log.CORE.info("ContextException " + ex.getMessage());
             throw new DeviceException(ex);
         }
         super.finishSynchronization(); //To change body of generated methods, choose Tools | Templates.
     }
 
-    private static Map registerTypeSelectionValues()
-    {
+    private static Map registerTypeSelectionValues() {
         Map types = new LinkedHashMap();
         types.put(0, "Дискретный выход (Coil)");
         types.put(1, "Дискретный вход (Discrete Input)");
@@ -799,8 +686,7 @@ public class FileDeviceDriver extends AbstractDeviceDriver
         return types;
     }
 
-    private static Map registerFormatSelectionValues()
-    {
+    private static Map registerFormatSelectionValues() {
         Map reg = new LinkedHashMap();
         reg.put(2, "2-байтный Int Unsigned");
         reg.put(3, "2-байтный Int Signed");
@@ -828,8 +714,7 @@ public class FileDeviceDriver extends AbstractDeviceDriver
     private static final TableFormat VFT_SQL;
     private List registers;
 
-    static
-    {
+    static {
         VFT_CONNECTION_PROPERTIES = new TableFormat(1, 1);
 
         VFT_CONNECTION_PROPERTIES.addField(FieldFormat.create((new StringBuilder()).append("<type><I><D=").append("MultibusVersion").append("><S=<").append("modbusTcp").append("=").append(0).append(">>").toString()));
@@ -892,25 +777,24 @@ public class FileDeviceDriver extends AbstractDeviceDriver
         VFT_DEVICES.addField(FieldFormat.create((new StringBuilder()).append("<port><I><A=502><D=").append("Номер порта").append(">").toString()));
 
         VFT_SQL = new TableFormat(1, 1);
-        VFT_SQL.addField(FieldFormat.create((new StringBuilder()).append("<yesSQL><B><A=false><D=").append("Включить сохранение дампа").append(">").toString()));
-        VFT_SQL.addField(FieldFormat.create((new StringBuilder()).append("<url><S><A=jdbc:mysql://localhost:3306/cyclebuff><D=").append("Url базы данных дампов").append(">").toString()));
-        VFT_SQL.addField(FieldFormat.create((new StringBuilder()).append("<JDBC><S><A=com.mysql.jdbc.Driver><D=").append("Драйвер базы данных ").append(">").toString()));
-        VFT_SQL.addField(FieldFormat.create((new StringBuilder()).append("<table><S><A=buffer><D=").append("Таблица дампа").append(">").toString()));
-        VFT_SQL.addField(FieldFormat.create((new StringBuilder()).append("<user><S><D=").append("Пользователь").append(">").toString()));
-        VFT_SQL.addField(FieldFormat.create((new StringBuilder()).append("<password><S><D=").append("Пароль").append(">").toString()));
-
+        VFT_SQL.addField(FieldFormat.create("<url><S><A=jdbc:postgresql://localhost:5432/cyclebuff><D=Url базы данных дампов>"));
+        VFT_SQL.addField(FieldFormat.create("<JDBCDriver><S><A=org.postgresql.Driver><D=Драйвер базы данных>"));
+        VFT_SQL.addField(FieldFormat.create("<table><S><A=DU><D=Таблица дампа>"));
+        VFT_SQL.addField(FieldFormat.create("<user><S><A=postgres><D=Пользователь>"));
+        VFT_SQL.addField(FieldFormat.create("<password><S><A=162747><D=Пароль>"));
+        VFT_SQL.addField(FieldFormat.create("<stepSQL><L><A=5000><D=Интервал сохранения переменных в БД >"));
+        VFT_SQL.addField(FieldFormat.create("<initSQL><B><A=true><D=Создавать БД при первом запуске>"));
+        VFT_SQL.addField(FieldFormat.create("<longSQL><L><A=5000000><D=Размер кольцевой таблицы БД>"));
     }
 
 }
 
-class DubReconect extends AggreGateThread
-{
+class DubReconect extends AggreGateThread {
 
     private FileDeviceDriver fd;
     ThreadManager threadManager = null;
 
-    public DubReconect(FileDeviceDriver fd, ThreadManager threadManager)
-    {
+    public DubReconect(FileDeviceDriver fd, ThreadManager threadManager) {
         super(threadManager);
         this.threadManager = threadManager;
         threadManager.addThread(this);
@@ -919,34 +803,25 @@ class DubReconect extends AggreGateThread
     }
 
     @Override
-    public void run()
-    {
-        do
-        {
+    public void run() {
+        do {
             //Log.CORE.info("поток!");
             DataTable devs = null;
-            try
-            {
+            try {
                 devs = fd.getDeviceContext().getVariable("devices", fd.getDeviceContext().getCallerController());
-            }
-            catch (ContextException ex)
-            {
+            } catch (ContextException ex) {
                 Log.CORE.info("not devices");
             }
             Integer device = 0;
-            for (DataRecord recdev : devs)
-            {
+            for (DataRecord recdev : devs) {
                 String IPaddres = recdev.getString("IPaddr");
                 int port = recdev.getInt("port");
                 //Log.CORE.info("Device in " + device.toString()+" "+IPaddres);
-                try
-                {
-                    if (!(fd.controller[device] != null && fd.controller[device].isconnected()))
-                    {
+                try {
+                    if (!(fd.controller[device] != null && fd.controller[device].isconnected())) {
                         Log.CORE.info("Перезапускаем " + IPaddres.toString() + ":" + Integer.toString(port));
 
-                        if (fd.controller[device] == null)
-                        {
+                        if (fd.controller[device] == null) {
                             fd.controller[device] = DubBusTCPController.tcpController(IPaddres, port, fd.PARAM);
                         }
 
@@ -954,25 +829,19 @@ class DubReconect extends AggreGateThread
                         fd.controller[device].connect();
                     }
 
-                }
-                catch (Exception ex)
-                {
+                } catch (Exception ex) {
                     //Log.CORE.info("Device Error " + device.toString() + " " + ex.getMessage());
                     fd.controller[device] = null;
                 }
                 device++;
             }
-            try
-            {
+            try {
                 AggreGateThread.sleep(10000);
-            }
-            catch (InterruptedException ex)
-            {
+            } catch (InterruptedException ex) {
                 //Log.CORE.info("stop driver ");
                 return;
             }
-        }
-        while (!isInterrupted());
+        } while (!isInterrupted());
     }
 
 }
