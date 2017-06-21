@@ -90,18 +90,18 @@ public class DubBusTCPMaster
             if (param.lenIR > 0)
             {
                 DataIR = new short[param.lenIR];
-            }
-            if (param.lenHR > 0)
-            {
-                DataHR = new short[param.lenHR];
-            }
             for (int i = 0; i < param.lenIR; i++)
             {
                 DataIR[i] = 0;
             }
+            }
+            if (param.lenHR > 0)
+            {
+                DataHR = new short[param.lenHR];
             for (int i = 0; i < param.lenHR; i++)
             {
                 DataHR[i] = 0;
+            }
             }
             //for (Register DataHR1 : DataHR) {
             //    DataHR1.setValue(0);
@@ -310,6 +310,7 @@ public class DubBusTCPMaster
     public synchronized BitVector readInputDiscretes(int unitid, int ref, int count)
     {
         BitVector bv = new BitVector(count);
+        if(param.lenDI==0) return bv;
         for (int i = 0; i < count; i++)
         {
             bv.setBit(i, DataDI.getBit(i + ref));
@@ -350,6 +351,7 @@ public class DubBusTCPMaster
     public synchronized InputRegister[] readInputRegisters(int unitid, int ref, int count)
     {
         InputRegister[] ir = new Register[count];
+        if(param.lenIR==0) return ir;
         for (int i = 0; i < count; i++)
         {
             ir[i] = new SimpleInputRegister(DataIR[ref + i]);
@@ -441,6 +443,7 @@ public class DubBusTCPMaster
     {
         //Log.CORE.info("MultiBusTCPMaster readMultipleRegisters in " + Integer.toString(ref) + " " + Integer.toString(count));
         Register[] hr = new Register[count];
+        if(param.lenHR==0) return hr;
         for (int i = 0; i < count; i++)
         {
             hr[i] = new SimpleRegister(DataHR[ref + i]);
