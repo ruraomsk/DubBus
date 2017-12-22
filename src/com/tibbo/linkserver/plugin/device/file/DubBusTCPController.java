@@ -35,12 +35,12 @@ public class DubBusTCPController {
     }
 
     public void connect()
-            throws Exception {
+            {
         modbus.connect();
     }
 
     public void disconnect()
-            throws Exception {
+   {
         modbus.disconnect();
     }
 

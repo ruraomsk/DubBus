@@ -230,6 +230,7 @@ public class FileDeviceDriver extends AbstractDeviceDriver {
                 controller[device].connect();
             } catch (Exception ex) {
                 Log.CORE.info("Device Error " + device.toString() + " " + ex.getMessage());
+                controller[device].disconnect();
                 controller[device] = null;
                 errorCount++;
             }
@@ -265,8 +266,8 @@ public class FileDeviceDriver extends AbstractDeviceDriver {
             param.password = rec.getString("password");
             param.myDB = rec.getString("table");
             boolean initSQL = rec.getBoolean("initSQL");
-            long longSQL = rec.getLong("longSQL");
             long stepSQL = rec.getLong("stepSQL");
+            String Tabledescription=rec.getString("description");
             DataTable regData = getDeviceContext().getVariable("registers", getDeviceContext().getCallerController());
             if (initSQL) {
                 Log.CORE.error("Создаем базу .....");
@@ -274,6 +275,7 @@ public class FileDeviceDriver extends AbstractDeviceDriver {
                 int count = 0;
                 for (DataRecord reg : regData) {
                     String name = reg.getString("name");
+                    String description=reg.getString("description");
                     int type = 1;
                     switch (reg.getInt("format")) {
                         case 2:
@@ -294,9 +296,9 @@ public class FileDeviceDriver extends AbstractDeviceDriver {
                         default:
                             Log.CORE.error("Нет типа " + reg.getString("name"));
                     }
-                    arraydesc.add(new DescrValue(name, count++, type));
+                    arraydesc.add(new DescrValue(name,description, type));
                 }
-                new StrongSql(param, arraydesc, 0, longSQL, new Date().toString());
+                new StrongSql(param, arraydesc,Tabledescription);
                 Log.CORE.error("Создали базу .....");
                 DataTable cp = getDeviceContext().getVariable("SQLProperties", getDeviceContext().getCallerController());
                 cp.rec().setValue("initSQL", false);
@@ -536,11 +538,7 @@ public class FileDeviceDriver extends AbstractDeviceDriver {
             Timestamp dto = new Timestamp(parameters.rec().getDate("to").getTime());
             DataTable regData = getDeviceContext().getVariable("registers", getDeviceContext().getCallerController());
             DataTable result = new DataTable(fd.getOutputFormat());
-            Integer count = keyMap.get(svar);
-            if (count == null) {
-                return result;
-            }
-            ArrayList<SetValue> asv = sqlseek.seekData(dfrom, dto, count);
+            ArrayList<SetValue> asv = sqlseek.seekData(dfrom, dto, svar);
             for (SetValue sv : asv) {
                 if (sv.getTime() == 0L) {
                     continue;
@@ -658,17 +656,17 @@ public class FileDeviceDriver extends AbstractDeviceDriver {
             return;
         }
         try {
-            ArrayList<SetValue> arrayValues = new ArrayList<>();
             DataTable tregs = getDeviceContext().getVariable("registers", getDeviceContext().getCallerController());
-            int count = 0;
+
+            SetData sd=new SetData(new Timestamp(System.currentTimeMillis()));
             for (DataRecord recregs : tregs) {
                 String vname = recregs.getString("name");
                 DataTable tvar = getDeviceContext().getVariable(vname, getDeviceContext().getCallerController());
                 Object obj = tvar.getRecord(0).getValue(0);
-                arrayValues.add(new SetValue(count++, obj));
+                sd.AddValue(new SetValue(vname, obj));
             }
-            if (!arrayValues.isEmpty()) {
-                sqldata.addValues(new Timestamp(System.currentTimeMillis()), arrayValues);
+            if (!sd.datas.isEmpty()) {
+                sqldata.addValues(sd);
             }
         } catch (ContextException ex) {
             Log.CORE.info("ContextException " + ex.getMessage());
@@ -779,12 +777,12 @@ public class FileDeviceDriver extends AbstractDeviceDriver {
         VFT_SQL = new TableFormat(1, 1);
         VFT_SQL.addField(FieldFormat.create("<url><S><A=jdbc:postgresql://localhost:5432/cyclebuff><D=Url базы данных дампов>"));
         VFT_SQL.addField(FieldFormat.create("<JDBCDriver><S><A=org.postgresql.Driver><D=Драйвер базы данных>"));
-        VFT_SQL.addField(FieldFormat.create("<table><S><A=DU><D=Таблица дампа>"));
+        VFT_SQL.addField(FieldFormat.create("<table><S><A=DU><D=Таблица хранения переменных>"));
+        VFT_SQL.addField(FieldFormat.create("<description><S><A=Переменные с устройства><D=Описание таблицы хранения>"));
         VFT_SQL.addField(FieldFormat.create("<user><S><A=postgres><D=Пользователь>"));
         VFT_SQL.addField(FieldFormat.create("<password><S><A=162747><D=Пароль>"));
         VFT_SQL.addField(FieldFormat.create("<stepSQL><L><A=5000><D=Интервал сохранения переменных в БД >"));
         VFT_SQL.addField(FieldFormat.create("<initSQL><B><A=true><D=Создавать БД при первом запуске>"));
-        VFT_SQL.addField(FieldFormat.create("<longSQL><L><A=5000000><D=Размер кольцевой таблицы БД>"));
     }
 
 }

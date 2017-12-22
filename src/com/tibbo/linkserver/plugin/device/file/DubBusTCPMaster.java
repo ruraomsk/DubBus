@@ -119,13 +119,17 @@ public class DubBusTCPMaster
     }
 
     public void connect()
-            throws Exception
     {
         //Log.CORE.info("MultiBusTCPMaster connect");
         if (m_Connection != null && !m_Connection.isConnected())
         {
 
-            m_Connection.connect();
+            try {
+                m_Connection.setTimeout(1000);
+                m_Connection.connect();
+            } catch (Exception ex) {
+                return;
+            }
             //Log.CORE.info("MultiBusTCPMaster связь установлена");
             m_Transaction = new ModbusTCPTransaction(m_Connection);
             m_Transaction.setReconnecting(m_Reconnecting);
@@ -236,20 +240,19 @@ public class DubBusTCPMaster
             m_Transaction.execute();
             DataCoils = ((ReadCoilsResponse) m_Transaction.getResponse()).getCoils();
         }
-        catch (ModbusIOException ex)
-        {
-            Log.CORE.info("DubBusTCPMaster readAllCoils " + ex.toString());
-            clearTransaction();
-        }
         catch (Exception ex)
         {
             Log.CORE.info("DubBusTCPMaster readAllCoils " + ex.toString());
+            clearTransaction();
         }
     }
 
     public synchronized boolean writeCoil(int unitid, int ref, boolean state)
     {
-        //lock.lock();
+        if (!isconnected())
+        {
+            return false;
+        }
         m_WriteCoilRequest.setUnitID(unitid);
         m_WriteCoilRequest.setReference(ref);
         m_WriteCoilRequest.setCoil(state);
@@ -259,18 +262,10 @@ public class DubBusTCPMaster
             m_Transaction.execute();
             DataCoils.setBit(ref, state);
         }
-        catch (ModbusIOException ex)
-        {
-            Log.CORE.info("DubBusTCPMaster writeCoil " + ex.toString());
-            clearTransaction();
-        }
         catch (Exception ex)
         {
             Log.CORE.info("DubBusTCPMaster writeCoil " + ex.toString());
-        }
-        finally
-        {
-            //lock.unlock();
+            clearTransaction();
         }
         return state;
     }
@@ -278,6 +273,10 @@ public class DubBusTCPMaster
     public synchronized void writeMultipleCoils(int unitid, int ref, BitVector coils)
     {
         //lock.lock();
+        if (!isconnected())
+        {
+            return;
+        }
         try
         {
             m_WriteMultipleCoilsRequest.setUnitID(unitid);
@@ -291,18 +290,10 @@ public class DubBusTCPMaster
                 DataCoils.setBit(ref + i, coils.getBit(i));
             }
         }
-        catch (ModbusIOException ex)
-        {
-            Log.CORE.info("DubBusTCPMaster writeMultipleCoil" + ex.toString());
-            clearTransaction();
-        }
         catch (Exception ex)
         {
-            Log.CORE.info("DubBusTCPMaster writeMultipleCoil" + ex.toString());
-        }
-        finally
-        {
-            //lock.unlock();
+            Log.CORE.info("DubBusTCPMaster readAllCoils " + ex.toString());
+            clearTransaction();
         }
 
     }
@@ -337,14 +328,10 @@ public class DubBusTCPMaster
             m_Transaction.execute();
             DataDI = ((ReadInputDiscretesResponse) m_Transaction.getResponse()).getDiscretes();
         }
-        catch (ModbusIOException ex)
-        {
-            Log.CORE.info("DubBusTCPMaster readAllInputDiscrets " + ex.toString());
-            clearTransaction();
-        }
         catch (Exception ex)
         {
             Log.CORE.info("DubBusTCPMaster readAllInputDiscrets " + ex.toString());
+            clearTransaction();
         }
     }
 
@@ -362,6 +349,10 @@ public class DubBusTCPMaster
     public synchronized void readAllInputRegisters()
     {
         if (param.lenIR == 0)
+        {
+            return;
+        }
+        if (!isconnected())
         {
             return;
         }
@@ -386,14 +377,10 @@ public class DubBusTCPMaster
                 ref += MaxLen;
             }
         }
-        catch (ModbusIOException ex)
-        {
-            Log.CORE.info("DubBusTCPMaster readAllInputRegisters " + ex.toString());
-            clearTransaction();
-        }
         catch (Exception ex)
         {
             Log.CORE.info("DubBusTCPMaster readAllInputRegisters " + ex.toString());
+            clearTransaction();
         }
     }
 
@@ -428,14 +415,10 @@ public class DubBusTCPMaster
                 ref += MaxLen;
             }
         }
-        catch (ModbusIOException ex)
-        {
-            Log.CORE.info("DubBusTCPMaster readAllMultipleDiscrets " + ex.toString());
-            clearTransaction();
-        }
         catch (Exception ex)
         {
             Log.CORE.info("DubBusTCPMaster readAllMultipleDiscrets " + ex.toString());
+            clearTransaction();
         }
     }
 
@@ -454,6 +437,10 @@ public class DubBusTCPMaster
     public synchronized void writeSingleRegister(int unitid, int ref, Register register)
     {
         //lock.lock();
+        if (!isconnected())
+        {
+            return;
+        }
         try
         {
             m_WriteMultipleRegistersRequest.setUnitID(unitid);
@@ -463,17 +450,10 @@ public class DubBusTCPMaster
             m_Transaction.execute();
             DataHR[ref] = register.toShort();
         }
-        catch (ModbusIOException ex)
+        catch (Exception ex)
         {
             Log.CORE.info("DubBusTCPMaster writeSingleRegister " + ex.toString());
             clearTransaction();
-        }
-        catch (Exception ex)
-        {
-        }
-        finally
-        {
-            //lock.unlock();
         }
 
     }
@@ -482,6 +462,10 @@ public class DubBusTCPMaster
     {
         //Log.CORE.info("MultiBusTCPMaster writeMultipleRegisters " + Integer.toString(ref) + " " + Integer.toString(registers.length));
         //lock.lock();
+        if (!isconnected())
+        {
+            return;
+        }
         try
         {
             m_WriteMultipleRegistersRequest.setUnitID(unitid);
@@ -494,18 +478,10 @@ public class DubBusTCPMaster
                 DataHR[ref] = registers[i].toShort();
             }
         }
-        catch (ModbusIOException ex)
+        catch (Exception ex)
         {
             Log.CORE.info("DubBusTCPMaster writeSingleRegister " + ex.toString());
             clearTransaction();
-        }
-        catch (Exception ex)
-        {
-            Log.CORE.info("DubBusTCPMaster writeMultipleRegisters " + ex.toString());
-        }
-        finally
-        {
-            //lock.unlock();
         }
 
     }
@@ -517,11 +493,16 @@ public class DubBusTCPMaster
 
     private synchronized void clearTransaction()
     {
-        m_Transaction = null;
-        m_Connection.close();
-        flagStop = true;
-        thrManager.interruptThread(thRead);
-        thRead = null;
+        try {
+            m_Connection.close();
+            flagStop = true;
+            if(thRead==null) return;
+            thrManager.interruptThread(thRead);
+            thRead.join(500);
+            thRead = null;
+            Log.CORE.info("DubBusTCPMaster clearTransaction " );
+        } catch (InterruptedException ex) {
+        }
     }
 
 }
