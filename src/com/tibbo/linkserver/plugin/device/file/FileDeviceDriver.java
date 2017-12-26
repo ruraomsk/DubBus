@@ -72,7 +72,7 @@ public class FileDeviceDriver extends AbstractDeviceDriver {
                 ensureRegisters();
             }
         } catch (ContextException ex) {
-            Log.CORE.info("Not accessSettingUpdated " + name);;
+            Log.CORE.error("Not accessSettingUpdated " + name);;
         }
         super.accessSettingUpdated(name); //To change body of generated methods, choose Tools | Templates.
     }
@@ -140,7 +140,7 @@ public class FileDeviceDriver extends AbstractDeviceDriver {
             getDeviceContext().setVariableField("connectionProperties", VF_LENIR, lenIR, getDeviceContext().getCallerController());
             getDeviceContext().setVariableField("connectionProperties", VF_LENHR, lenHR, getDeviceContext().getCallerController());
         } catch (ContextException ex) {
-            Log.CORE.info("connectionProperties or registers not found" + ex.getMessage());
+            Log.CORE.error("connectionProperties or registers not found" + ex.getMessage());
         }
     }
 
@@ -200,7 +200,7 @@ public class FileDeviceDriver extends AbstractDeviceDriver {
         try {
             connProps = getDeviceContext().getVariable("connectionProperties", getDeviceContext().getCallerController()).rec();
         } catch (ContextException ex) {
-            Log.CORE.info("connectionProperties not found" + ex.getMessage());
+            Log.CORE.error("connectionProperties not found" + ex.getMessage());
         }
         PARAM.lenCoils = connProps.getInt(VF_LENCOILS);
         PARAM.lenDI = connProps.getInt(VF_LENDI);
@@ -215,7 +215,7 @@ public class FileDeviceDriver extends AbstractDeviceDriver {
         try {
             devs = super.getDeviceContext().getVariable("devices", getDeviceContext().getCallerController());
         } catch (ContextException ex) {
-            Log.CORE.info("Devices not found");
+            Log.CORE.error("Devices not found");
         }
         Integer errorCount = 0;
         Integer device = 0;
@@ -229,7 +229,7 @@ public class FileDeviceDriver extends AbstractDeviceDriver {
                 controller[device] = DubBusTCPController.tcpController(IPaddres, port, PARAM);
                 controller[device].connect();
             } catch (Exception ex) {
-                Log.CORE.info("Device Error " + device.toString() + " " + ex.getMessage());
+                Log.CORE.error("Device Error " + device.toString() + " " + ex.getMessage());
                 controller[device].disconnect();
                 controller[device] = null;
                 errorCount++;
@@ -270,7 +270,7 @@ public class FileDeviceDriver extends AbstractDeviceDriver {
             String Tabledescription=rec.getString("description");
             DataTable regData = getDeviceContext().getVariable("registers", getDeviceContext().getCallerController());
             if (initSQL) {
-                Log.CORE.error("Создаем базу .....");
+                Log.CORE.info("Создаем базу "+Tabledescription);
                 ArrayList<DescrValue> arraydesc = new ArrayList<>();
                 int count = 0;
                 for (DataRecord reg : regData) {
@@ -299,7 +299,7 @@ public class FileDeviceDriver extends AbstractDeviceDriver {
                     arraydesc.add(new DescrValue(name,description, type));
                 }
                 new StrongSql(param, arraydesc,Tabledescription);
-                Log.CORE.error("Создали базу .....");
+                Log.CORE.info("Создали базу "+Tabledescription);
                 DataTable cp = getDeviceContext().getVariable("SQLProperties", getDeviceContext().getCallerController());
                 cp.rec().setValue("initSQL", false);
                 getDeviceContext().setVariable("SQLProperties", getDeviceContext().getCallerController(), cp);
@@ -308,7 +308,7 @@ public class FileDeviceDriver extends AbstractDeviceDriver {
             sqldata = new StrongSql(param, stepSQL);
             sqlseek = new StrongSql(param);
             yesSQL = true;
-            Log.CORE.error("Connect .....");
+            Log.CORE.info("Connect "+Tabledescription);
         } catch (ContextException ex) {
             throw new DeviceException("SQL error!");
         }
@@ -330,7 +330,7 @@ public class FileDeviceDriver extends AbstractDeviceDriver {
         try {
             connProps = getDeviceContext().getVariable("connectionProperties", getDeviceContext().getCallerController()).rec();
         } catch (ContextException ex) {
-            Log.CORE.info("connectionProperties not found" + ex.getMessage());
+            Log.CORE.error("connectionProperties not found" + ex.getMessage());
         }
         canal = connProps.getInt(VF_CANAL);
         Integer errorCount = 0;
@@ -376,7 +376,7 @@ public class FileDeviceDriver extends AbstractDeviceDriver {
         try {
             getDeviceContext().setVariableField("connectionProperties", VF_CANAL, canal, getDeviceContext().getCallerController());
         } catch (ContextException ex) {
-            Log.CORE.info("connectionProperties not wrote " + ex.getMessage());
+            Log.CORE.error("connectionProperties not wrote " + ex.getMessage());
         }
 
     }
@@ -498,7 +498,7 @@ public class FileDeviceDriver extends AbstractDeviceDriver {
             try {
                 devs = super.getDeviceContext().getVariable("devices", getDeviceContext().getCallerController());
             } catch (ContextException ex) {
-                Log.CORE.info("Devices not found");
+                Log.CORE.error("Devices not found");
             }
             Integer error = 0;
             Integer device = 0;
@@ -569,9 +569,9 @@ public class FileDeviceDriver extends AbstractDeviceDriver {
                 keyMap.put(name, count++);
             }
         } catch (ClassNotFoundException ex) {
-            Log.CORE.info("Not Class MultiModbusRegister!");
+            Log.CORE.error("Not Class MultiModbusRegister!");
         } catch (ContextException ex) {
-            Log.CORE.info("Ошибка в makeRegisters " + ex.getMessage());
+            Log.CORE.error("Ошибка в makeRegisters " + ex.getMessage());
         }
 
     }
@@ -669,7 +669,7 @@ public class FileDeviceDriver extends AbstractDeviceDriver {
                 sqldata.addValues(sd);
             }
         } catch (ContextException ex) {
-            Log.CORE.info("ContextException " + ex.getMessage());
+            Log.CORE.error("ContextException " + ex.getMessage());
             throw new DeviceException(ex);
         }
         super.finishSynchronization(); //To change body of generated methods, choose Tools | Templates.
@@ -808,7 +808,7 @@ class DubReconect extends AggreGateThread {
             try {
                 devs = fd.getDeviceContext().getVariable("devices", fd.getDeviceContext().getCallerController());
             } catch (ContextException ex) {
-                Log.CORE.info("not devices");
+                Log.CORE.error("not devices");
             }
             Integer device = 0;
             for (DataRecord recdev : devs) {
